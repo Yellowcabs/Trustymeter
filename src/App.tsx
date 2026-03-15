@@ -23,10 +23,12 @@ import { formatDuration, formatCurrency, cn } from './utils';
 import { useGeolocation } from './hooks/useGeolocation';
 import { SoundService } from './services/soundService';
 
+const WAITING_CHARGE_PER_MIN = 0.5; // Change this in code to update waiting charge
+
 const DEFAULT_SETTINGS: FareSettings = {
   baseFare: 80,
   pricePerKm: 25,
-  waitingChargePerMin: 0.5,
+  waitingChargePerMin: WAITING_CHARGE_PER_MIN,
   driverName: '',
   vehicleNumber: '',
 };
@@ -73,7 +75,7 @@ export default function App() {
   const totalFare = useMemo(() => {
     if (status === 'IDLE') return 0;
     const distanceFare = distance * settings.pricePerKm;
-    const waitingFare = (waitingTime / 60) * settings.waitingChargePerMin;
+    const waitingFare = (waitingTime / 60) * WAITING_CHARGE_PER_MIN;
     return settings.baseFare + distanceFare + waitingFare;
   }, [distance, waitingTime, settings, status]);
 
