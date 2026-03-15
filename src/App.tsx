@@ -503,9 +503,7 @@ export default function App() {
                   />
                 </div>
 
-            
-                
-              
+               
                 <div className="bg-[#F9FAFB] p-6 rounded-[28px] border border-[#F1F3F5]">
                   <label className="text-[10px] font-black text-[#9CA3AF] uppercase tracking-[2px] mb-3 block">Base Fare (₹)</label>
                   <input 
@@ -525,7 +523,7 @@ export default function App() {
                   />
                 </div>
 
-              
+             
               </div>
 
               <button 
