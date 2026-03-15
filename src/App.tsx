@@ -153,23 +153,51 @@ export default function App() {
     return settings.baseFare + distanceFare + waitingFare;
   }, [distance, waitingTime, settings, status]);
 
+  const lastTickRef = useRef<number>(Date.now());
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (status === 'ACTIVE' || status === 'WAITING') {
+      lastTickRef.current = Date.now();
       interval = setInterval(() => {
-        setTripTime((prev) => prev + 1);
+        const now = Date.now();
+        const delta = Math.floor((now - lastTickRef.current) / 1000);
         
-        // Waiting logic: speed < 0.3 m/s (approx 1 km/h)
-        if (speed < 0.3) {
-          setStatus('WAITING');
-          setWaitingTime((prev) => prev + 1);
-        } else {
-          setStatus('ACTIVE');
+        if (delta >= 1) {
+          setTripTime((prev) => prev + delta);
+          
+          // Waiting logic: speed < 0.3 m/s (approx 1 km/h)
+          if (speed < 0.3) {
+            setStatus('WAITING');
+            setWaitingTime((prev) => prev + delta);
+          } else {
+            setStatus('ACTIVE');
+          }
+          lastTickRef.current = now;
         }
       }, 1000);
     }
     return () => clearInterval(interval);
   }, [status, speed]);
+
+  // Catch up logic when returning from background
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && (status === 'ACTIVE' || status === 'WAITING')) {
+        const now = Date.now();
+        const delta = Math.floor((now - lastTickRef.current) / 1000);
+        if (delta > 0) {
+          setTripTime((prev) => prev + delta);
+          if (status === 'WAITING') {
+            setWaitingTime((prev) => prev + delta);
+          }
+          lastTickRef.current = now;
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [status]);
 
   const startTrip = () => {
     if (status !== 'IDLE') return;
