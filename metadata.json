@@ -1,0 +1,7 @@
+{
+  "name": "TrustyYellowCabs",
+  "description": "A professional GPS-based taxi meter with Tamil voice control, live tracking, and automatic fare calculation.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
