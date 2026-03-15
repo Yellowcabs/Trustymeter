@@ -7,12 +7,26 @@
 
 @layer base {
   html, body {
-    @apply h-full overflow-hidden bg-[#F9FAFB];
+    @apply h-full bg-[#F9FAFB];
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+    overflow: visible !important; /* <-- allow modals to extend outside body */
+    position: relative;
   }
 
   #root {
-    @apply h-full;
+    @apply h-full relative; /* <-- ensure root container allows absolute children */
+    overflow: visible !important; /* <-- allow React motion modals to appear */
+  }
+
+  /* Optional: modal fixes */
+  .motion-modal, .modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    overflow: visible !important;
+    z-index: 9999 !important; /* make sure modal is above WebView content */
   }
 }
