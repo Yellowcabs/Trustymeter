@@ -502,6 +502,10 @@ export default function App() {
                     className="w-full bg-transparent text-3xl font-black outline-none text-[#111827] tracking-tighter uppercase"
                   />
                 </div>
+
+            
+                
+              
                 <div className="bg-[#F9FAFB] p-6 rounded-[28px] border border-[#F1F3F5]">
                   <label className="text-[10px] font-black text-[#9CA3AF] uppercase tracking-[2px] mb-3 block">Base Fare (₹)</label>
                   <input 
@@ -521,13 +525,7 @@ export default function App() {
                   />
                 </div>
 
-                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                  <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1">Background Mode</p>
-                  <p className="text-[11px] text-blue-500 leading-relaxed">
-                    Trip continues even if you switch apps or close the browser. 
-                    Distance tracks via GPS when app is active. Time is always accurate.
-                  </p>
-                </div>
+              
               </div>
 
               <button 

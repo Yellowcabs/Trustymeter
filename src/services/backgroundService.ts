@@ -11,12 +11,20 @@ class BackgroundService {
   private isRunning: boolean = false;
 
   constructor() {
-    // Create a very short silent base64 audio string (1 second of silence)
+    // Create a 10-second silent base64 audio string (more robust than 1s)
+    // This is a standard silent WAV header + silence
     const silentAudioBase64 = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
     
     if (typeof window !== 'undefined') {
       this.audio = new Audio(silentAudioBase64);
       this.audio.loop = true;
+      
+      // Handle potential interruptions (like phone calls ending)
+      this.audio.onpause = () => {
+        if (this.isRunning) {
+          this.audio?.play().catch(e => console.error('Background audio resume failed:', e));
+        }
+      };
     }
   }
 

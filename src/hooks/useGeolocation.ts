@@ -10,6 +10,19 @@ export function useGeolocation(isActive: boolean, initialDistance: number = 0) {
   const lastLocationRef = useRef<Location | null>(null);
 
   useEffect(() => {
+    const saved = localStorage.getItem('last_known_location');
+    if (saved && !lastLocationRef.current) {
+      lastLocationRef.current = JSON.parse(saved);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentLocation) {
+      localStorage.setItem('last_known_location', JSON.stringify(currentLocation));
+    }
+  }, [currentLocation]);
+
+  useEffect(() => {
     if (initialDistance > 0 && distance === 0) {
       setDistance(initialDistance);
     }
