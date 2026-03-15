@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Play, 
@@ -34,6 +34,7 @@ const DEFAULT_SETTINGS: FareSettings = {
 };
 
 const SETTINGS_KEY = 'taxi_meter_settings';
+const TRIP_STATE_KEY = 'taxi_meter_active_trip';
 
 export default function App() {
   const [status, setStatus] = useState<TripStatus>('IDLE');
@@ -41,6 +42,8 @@ export default function App() {
   const [waitingTime, setWaitingTime] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [lastTrip, setLastTrip] = useState<TripData | null>(null);
+  const [persistedDistance, setPersistedDistance] = useState(0);
+  const wakeLockRef = useRef<any>(null);
 
   // Fare Configuration
   const [settings, setSettings] = useState<FareSettings>(() => {
@@ -52,6 +55,42 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   }, [settings]);
+
+  // Wake Lock Logic
+  const requestWakeLock = async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+      } catch (err) {
+        console.error('Wake Lock error:', err);
+      }
+    }
+  };
+
+  const releaseWakeLock = () => {
+    if (wakeLockRef.current) {
+      wakeLockRef.current.release();
+      wakeLockRef.current = null;
+    }
+  };
+
+  // Trip Persistence & Recovery
+  useEffect(() => {
+    const savedTrip = localStorage.getItem(TRIP_STATE_KEY);
+    if (savedTrip) {
+      const data = JSON.parse(savedTrip);
+      if (data.status === 'ACTIVE' || data.status === 'WAITING') {
+        const now = Date.now();
+        const elapsedSeconds = Math.floor((now - data.lastUpdated) / 1000);
+        
+        setStatus(data.status);
+        setTripTime(data.tripTime + elapsedSeconds);
+        setWaitingTime(data.waitingTime + (data.status === 'WAITING' ? elapsedSeconds : 0));
+        setPersistedDistance(data.distance);
+        requestWakeLock();
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -70,7 +109,41 @@ export default function App() {
     return params.get('brand') || 'get';
   }, []);
 
-  const { currentLocation, distance, speed, route, resetDistance } = useGeolocation(status === 'ACTIVE' || status === 'WAITING');
+  const { currentLocation, distance, speed, route, resetDistance } = useGeolocation(status === 'ACTIVE' || status === 'WAITING', persistedDistance);
+
+  useEffect(() => {
+    if (status === 'ACTIVE' || status === 'WAITING') {
+      const interval = setInterval(() => {
+        localStorage.setItem(TRIP_STATE_KEY, JSON.stringify({
+          status,
+          tripTime,
+          waitingTime,
+          distance,
+          lastUpdated: Date.now()
+        }));
+      }, 2000);
+      return () => clearInterval(interval);
+    } else if (status === 'IDLE' || status === 'COMPLETED') {
+      localStorage.removeItem(TRIP_STATE_KEY);
+    }
+  }, [status, tripTime, waitingTime, distance]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && (status === 'ACTIVE' || status === 'WAITING')) {
+        localStorage.setItem(TRIP_STATE_KEY, JSON.stringify({
+          status,
+          tripTime,
+          waitingTime,
+          distance,
+          lastUpdated: Date.now()
+        }));
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [status, tripTime, waitingTime, distance]);
 
   const totalFare = useMemo(() => {
     if (status === 'IDLE') return 0;
@@ -103,12 +176,15 @@ export default function App() {
     setStatus('ACTIVE');
     setTripTime(0);
     setWaitingTime(0);
+    setPersistedDistance(0);
     resetDistance();
+    requestWakeLock();
   };
 
   const stopTrip = () => {
     if (status === 'IDLE' || status === 'COMPLETED') return;
     SoundService.playStop(totalFare);
+    releaseWakeLock();
     const trip: TripData = {
       id: Date.now().toString(),
       startTime: Date.now() - tripTime * 1000,
@@ -130,7 +206,9 @@ export default function App() {
     setTripTime(0);
     setWaitingTime(0);
     setLastTrip(null);
+    setPersistedDistance(0);
     resetDistance();
+    releaseWakeLock();
   };
 
   const shareTripDetails = () => {
@@ -160,6 +238,13 @@ export default function App() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             {/* Live Meter Card */}
             <div className="w-full bg-white rounded-[40px] p-8 sm:p-10 text-center shadow-sm border border-[#F1F3F5]">
+              {/* Background Mode Indicator */}
+              {(status === 'ACTIVE' || status === 'WAITING') && (
+                <div className="flex items-center justify-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100 mb-6 w-fit mx-auto">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Background Active</span>
+                </div>
+              )}
               <div className="text-[#9CA3AF] text-[12px] font-black tracking-[2px] uppercase mb-3">Live Fare</div>
               <div className="flex items-center justify-center gap-1 mb-8">
                 <span className="text-[#ef4444] text-4xl font-black mt-2">₹</span>
@@ -402,6 +487,14 @@ export default function App() {
                     onChange={(e) => setSettings({...settings, pricePerKm: Number(e.target.value)})}
                     className="w-full bg-transparent text-5xl font-black outline-none text-[#111827] tracking-tighter"
                   />
+                </div>
+
+                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                  <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1">Background Mode</p>
+                  <p className="text-[11px] text-blue-500 leading-relaxed">
+                    Trip continues even if you switch apps or close the browser. 
+                    Distance tracks via GPS when app is active. Time is always accurate.
+                  </p>
                 </div>
               </div>
 

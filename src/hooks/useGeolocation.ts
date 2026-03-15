@@ -2,12 +2,18 @@ import { useState, useEffect, useRef } from 'react';
 import { Location } from '../types';
 import { calculateDistance } from '../utils';
 
-export function useGeolocation(isActive: boolean) {
+export function useGeolocation(isActive: boolean, initialDistance: number = 0) {
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
-  const [distance, setDistance] = useState(0);
+  const [distance, setDistance] = useState(initialDistance);
   const [route, setRoute] = useState<Location[]>([]);
   const [speed, setSpeed] = useState(0);
   const lastLocationRef = useRef<Location | null>(null);
+
+  useEffect(() => {
+    if (initialDistance > 0 && distance === 0) {
+      setDistance(initialDistance);
+    }
+  }, [initialDistance]);
 
   useEffect(() => {
     if (!isActive) {
