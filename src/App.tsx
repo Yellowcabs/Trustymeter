@@ -26,7 +26,7 @@ import { SoundService } from './services/soundService';
 const DEFAULT_SETTINGS: FareSettings = {
   baseFare: 80,
   pricePerKm: 25,
-  waitingChargePerMin: 2,
+  waitingChargePerMin: 0.5,
   driverName: '',
   vehicleNumber: '',
 };
