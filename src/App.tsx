@@ -89,6 +89,7 @@ export default function App() {
         setWaitingTime(data.waitingTime + (data.status === 'WAITING' ? elapsedSeconds : 0));
         setPersistedDistance(data.distance);
         requestWakeLock();
+        backgroundService.start();
       }
     }
   }, []);
@@ -272,9 +273,14 @@ export default function App() {
             <div className="w-full bg-white rounded-[40px] p-8 sm:p-10 text-center shadow-sm border border-[#F1F3F5]">
               {/* Background Mode Indicator */}
               {(status === 'ACTIVE' || status === 'WAITING') && (
-                <div className="flex items-center justify-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100 mb-6 w-fit mx-auto">
-                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Background Active</span>
+                <div className="flex flex-col items-center mb-6">
+                  <div className="flex items-center justify-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100 w-fit mx-auto">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Tracking Active</span>
+                  </div>
+                  <p className="text-[9px] text-[#9CA3AF] font-bold uppercase mt-2 tracking-wider">
+                    Works even with screen locked
+                  </p>
                 </div>
               )}
               <div className="text-[#9CA3AF] text-[12px] font-black tracking-[2px] uppercase mb-3">Live Fare</div>
@@ -503,7 +509,7 @@ export default function App() {
                   />
                 </div>
 
-               
+            
                 <div className="bg-[#F9FAFB] p-6 rounded-[28px] border border-[#F1F3F5]">
                   <label className="text-[10px] font-black text-[#9CA3AF] uppercase tracking-[2px] mb-3 block">Base Fare (₹)</label>
                   <input 
@@ -523,7 +529,7 @@ export default function App() {
                   />
                 </div>
 
-             
+           
               </div>
 
               <button 

@@ -62,16 +62,22 @@ export function useGeolocation(isActive: boolean, initialDistance: number = 0) {
           );
           
           // 2. Jitter Filter: Ignore very small movements (less than 3 meters)
-          // 3. Speed Filter: Ignore impossible jumps (over 140 km/h or 0.2km per update)
-          const timeDiff = (newLocation.timestamp - lastLocationRef.current.timestamp) / 1000;
+          // 3. Dynamic Speed Filter: Ignore impossible jumps based on time elapsed
+          const timeDiffSeconds = (newLocation.timestamp - lastLocationRef.current.timestamp) / 1000;
           
           // If time diff is too small (< 1s), skip to avoid noise
-          if (timeDiff < 1) return;
+          if (timeDiffSeconds < 1) return;
 
-          const speedKmh = d / (timeDiff / 3600);
+          const speedKmh = d / (timeDiffSeconds / 3600);
+          
+          // Max reasonable speed for a taxi (e.g. 140 km/h)
+          const MAX_SPEED_KMH = 140;
+          
+          // If we have a large gap (e.g. screen was off), we allow a larger distance jump
+          // but still bound it by a reasonable max speed.
+          const isReasonableMovement = d > 0.003 && speedKmh < MAX_SPEED_KMH;
 
-          // Use a more conservative speed check for urban driving
-          if (d > 0.003 && d < 0.2 && speedKmh < 140) {
+          if (isReasonableMovement) {
             setDistance((prev) => prev + d);
             lastLocationRef.current = newLocation;
           }
