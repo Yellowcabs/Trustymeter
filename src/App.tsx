@@ -22,6 +22,7 @@ import { TripStatus, TripData, FareSettings } from './types';
 import { formatDuration, formatCurrency, cn } from './utils';
 import { useGeolocation } from './hooks/useGeolocation';
 import { SoundService } from './services/soundService';
+import { backgroundService } from './services/backgroundService';
 
 const WAITING_CHARGE_PER_MIN = 0.5; // Change this in code to update waiting charge
 
@@ -173,6 +174,7 @@ export default function App() {
   const startTrip = () => {
     if (status !== 'IDLE') return;
     SoundService.playStart();
+    backgroundService.start();
     setStatus('ACTIVE');
     setTripTime(0);
     setWaitingTime(0);
@@ -184,6 +186,7 @@ export default function App() {
   const stopTrip = () => {
     if (status === 'IDLE' || status === 'COMPLETED') return;
     SoundService.playStop(totalFare);
+    backgroundService.stop();
     releaseWakeLock();
     const trip: TripData = {
       id: Date.now().toString(),
@@ -202,6 +205,7 @@ export default function App() {
 
   const resetTrip = () => {
     SoundService.playTick();
+    backgroundService.stop();
     setStatus('IDLE');
     setTripTime(0);
     setWaitingTime(0);

@@ -26,8 +26,8 @@ export function useGeolocation(isActive: boolean, initialDistance: number = 0) {
       (position) => {
         const { latitude, longitude, accuracy, speed: currentSpeed } = position.coords;
         
-        // 1. Accuracy Filter: Ignore points with poor accuracy (> 25m)
-        if (accuracy > 25) return;
+        // 1. Accuracy Filter: Ignore points with poor accuracy (> 20m)
+        if (accuracy > 20) return;
 
         const newLocation: Location = {
           lat: latitude,
@@ -35,6 +35,7 @@ export function useGeolocation(isActive: boolean, initialDistance: number = 0) {
           timestamp: position.timestamp,
         };
 
+        // Update current location immediately for the map/UI
         setCurrentLocation(newLocation);
         setRoute((prev) => [...prev, newLocation]);
         setSpeed(currentSpeed || 0);
@@ -47,13 +48,17 @@ export function useGeolocation(isActive: boolean, initialDistance: number = 0) {
             newLocation.lng
           );
           
-          // 2. Jitter Filter: Ignore very small movements (less than 5 meters)
-          // 3. Speed Filter: Ignore impossible jumps (over 150 km/h or 0.25km per update)
+          // 2. Jitter Filter: Ignore very small movements (less than 3 meters)
+          // 3. Speed Filter: Ignore impossible jumps (over 140 km/h or 0.2km per update)
           const timeDiff = (newLocation.timestamp - lastLocationRef.current.timestamp) / 1000;
+          
+          // If time diff is too small (< 1s), skip to avoid noise
+          if (timeDiff < 1) return;
+
           const speedKmh = d / (timeDiff / 3600);
 
-          if (d > 0.005 && d < 0.3 && speedKmh < 150) {
-            // Use true distance for "accurate" calculation
+          // Use a more conservative speed check for urban driving
+          if (d > 0.003 && d < 0.2 && speedKmh < 140) {
             setDistance((prev) => prev + d);
             lastLocationRef.current = newLocation;
           }
